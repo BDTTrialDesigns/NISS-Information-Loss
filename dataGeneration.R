@@ -1,5 +1,5 @@
 #' Code from Sergey for generating BMI reduction data
-#' This code can be updated to generate internal/external data in a similar manner
+#' This code can be updated to generate external data in a similar manner
 library(MASS)
 
 n <- 200
