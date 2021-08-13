@@ -1,0 +1,13 @@
+Useful links for using github with R and R Studio:
+
+https://bren.zendesk.com/hc/en-us/articles/360015783772-Connecting-and-using-Git-Github-for-version-control-with-RStudio
+This article outlines how to clone a repo using R Studio. 
+
+https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository-from-github/cloning-a-repository
+This help-page outlines how to clone the repo in command line (recommended but more involved that above)
+
+
+Note:
+Feel free to add any other links
+You can always make edits to the code on github itself, if that's easiest. Just download the repo each time, try out the changes and then
+add it manually. This is the simplest way prehaps but definitely more involved.
