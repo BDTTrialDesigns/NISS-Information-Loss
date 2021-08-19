@@ -19,13 +19,13 @@ SummaryBMI_LM1(BMI1)
 # $SE
 # [1] 0.0566189
 
-## Note, the original dataset BMI1 is not available. The 24 month effect of the 
-## intervention is not reported either.
+## Note that in the original dataset BMI1 is not available and 24-month 
+## intervention is not reported.
 
-## Our objective is to estimate 24 mother effect of the intervention R  adjusted 
+## Our objective is to estimate 24-month effect of the intervention R adjusted 
 ## for baseline BMI.
 
-## Note, we can reproduce the (adjusted) effect of R on 12 month BMI change.
+## We can reproduce the (adjusted) effect of R on 12-month BMI change.
 
 SummaryBMI_LM1(BMI0)
 # $eff
@@ -34,9 +34,7 @@ SummaryBMI_LM1(BMI0)
 # $SE
 # [1] 0.190133
 
-
-## But this is not a 24 month effect. The 24 month effect can be estimated 
-## on our dataset using another ANCOVA model
+## The 24-month effect can be estimated on our dataset using another ANCOVA
 
 SummaryBMI_LM2(BMI0)
 # $eff
@@ -46,7 +44,7 @@ SummaryBMI_LM2(BMI0)
 # [1] 0.2687321
 
 ## We will use "AddInf" package to incorporate this external information
-## in estimation of 24 month change in BMI adjusted for baseline BMI
+## in estimation of 24-month change in BMI adjusted for baseline BMI
 
 ## (uncomment "devtools" installation if needed)
 ## install.packages("devtools")
@@ -54,7 +52,8 @@ library(devtools)
 install_github("starima74/AddInf", force=TRUE)
 library(AddInf)
 
-## First, we define a function which calculates 24 months adjusted effect.
+## First, we define a function which calculates the 24-month adjusted 
+## for baseline effect.
 
 theta.f <- function(d) {
   SummaryBMI_LM2(d)$eff
