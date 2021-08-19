@@ -4,6 +4,52 @@
 
 library(MASS)
 library(lme4)
+set.seed(1234)
+
+## GLOBAL VARIABLES
+
+eff1 <- -1.5   # BMI reduction at an early point (the intervention effect)
+eff2 <- -0.75  # BMI reduction at the primary endpoint (the intervention effect)
+red1 <- -1     # BMI reduction at an early point
+red2 <- 0      # BMI reduction at the primary endpoint
+lost1 <- 0.2   # probability of dropping prior to the early BMI assessment
+lost2 <- 0.4   # probability of dropping prior to the primary BMI assessment
+baselineCovBMI1 <- -0.1  # the higher BMI is the stronger BMI reduction 
+#is anticipated (early endpoint) toward BMI = 25
+baselineCovBMI2 <- -0.1 # the higher BMI is the stronger BMI reduction 
+# is anticipated (primary endpoint) toward BMI = 25
+rho <- 0.75   # correlation between the 1st and the 2nd BMI assessments
+rho23 <- 0.95  # correlation between the 2st and the 3nd BMI assessments
+
+## DATASET 0 (main dataset)
+n0 <- 200          # total sample size of the main study
+seed0 <- 1234      # seed value to generate the main dataset
+prob0 <- 0.5       # probability to assign the new treatment
+baselineBMI0 <- 35 # mean baseline BMI in main study 
+
+## DATASET 1 (external dataset with a large sample)
+n1 <- 2000         # total sample size of the 1st external dataset
+seed1 <- 1235      # seed value to generate the 1st external dataset
+prob1 <- 0.5       # probability to assign the new treatment
+baselineBMI1 <- 30 # mean baseline BMI in 1st external study
+
+## DATASET 2 (external dataset with a similar sample size)
+n2 <- 300          # total sample size of the 1st external dataset
+seed2 <- 1236      # seed value to generate the 1st external dataset
+prob2 <- 0.5       # probability to assign the new treatment
+baselineBMI2 <- 27 # mean baseline BMI in 1st external study
+
+## DATASET 3 (external dataset with a small sample size)
+n3 <- 50           # total sample size of the 1st external dataset
+seed3 <- 1237      # seed value to generate the 1st external dataset
+prob3 <- 0.5       # probability to assign the new treatment
+baselineBMI3 <- 30 # mean baseline BMI in 1st external study
+
+## DATASET 4 (external dataset with a large sample; similar baseline BMI)
+n4 <- 2000         # total sample size of the 1st external dataset
+seed4 <- 1238      # seed value to generate the 1st external dataset
+prob4 <- 0.5       # probability to assign the new treatment
+baselineBMI4 <- 35 # mean baseline BMI in 1st external study
 
 ############ FUNCTIONS (start)  ##############
 ############ FUNCTIONS (start)  ##############
@@ -19,8 +65,12 @@ dataGeneration <- function(n = n0,
   MU <- data.frame(BMI1 = baselineBMI, 
                    BMI2 = baselineBMI + red1 + R*eff1, 
                    BMI3 = baselineBMI + red2 + R*eff2)
+  ## note CORR is not a correlation matrix
+  ## SDs are not standard deviation
+  ## this is just a way to create a covariance matrix
   CORR  <- diag(rep(3,1))
-  CORR[CORR == 0] <- 0.9
+  CORR[CORR == 0] <- rho
+  CORR[2,3] <- CORR[3,2] <- rho23
   SDs <- sqrt(c(2, 3, 4))
   SIGMA <- diag(SDs) %*% CORR %*% diag(SDs) 
   BMI <- MASS::mvrnorm(n, mu = c(0,0,0), Sigma = SIGMA) + MU
@@ -67,14 +117,14 @@ SummaryBMIReduction <- function(BMI) {
 SummaryBMI_LM1 <- function(BMI) {
   BMI$REDUCTION <- BMI[, 2] - BMI[, 1]
   S <- summary(lm(REDUCTION ~ BMI1 + R, data = BMI))$coef
-  list(eff1 = S[3, 1], SE = S[3, 2])
+  list(eff = S[3, 1], SE = S[3, 2])
 }
 
 ### (5) linear model for the primary endpoint
 SummaryBMI_LM2 <- function(BMI) {
   BMI$REDUCTION <- BMI[, 3] - BMI[, 1]
   S <- summary(lm(REDUCTION ~ BMI1 + R, data = BMI))$coef
-  list(eff1 = S[3, 1], SE = S[3, 2])
+  list(eff = S[3, 1], SE = S[3, 2])
 }
 
 ## (6) a linear mixed linear model for both endpoints
@@ -97,48 +147,6 @@ SummaryBMI_LMER <- function(BMI) {
 ############ FUNCTIONS (end)  ##############
 ############ FUNCTIONS (end)  ##############
 
-## GLOBAL VARIABLES
-
-eff1 <- -1.5   # BMI reduction at an early time point (the intervention effect)
-eff2 <- -0.75  # BMI reduction at the primary endpoint (the intervention effect)
-red1 <- -1     # BMI reduction at an early time point
-red2 <- 0      # BMI reduction at the primary endpoint
-lost1 <- 0.2   # probability of dropping prior to the early BMI assessment
-lost2 <- 0.4   # probability of dropping prior to the primary BMI assessment
-baselineCovBMI1 <- -0.1  # the higher BMI is the stronger BMI reduction 
-                         #is anticipated (early endpoint) toward BMI = 25
-baselineCovBMI2 <- -0.05 # the higher BMI is the stronger BMI reduction 
-                         # is anticipated (primary endpoint) toward BMI = 25
-
-## DATASET 0 (main dataset)
-n0 <- 200          # total sample size of the main study
-seed0 <- 1234      # seed value to generate the main dataset
-prob0 <- 0.5       # probability to assign the new treatment
-baselineBMI0 <- 35 # mean baseline BMI in main study 
-
-## DATASET 1 (external dataset with a large sample)
-n1 <- 2000         # total sample size of the 1st external dataset
-seed1 <- 1235      # seed value to generate the 1st external dataset
-prob1 <- 0.5       # probability to assign the new treatment
-baselineBMI1 <- 30 # mean baseline BMI in 1st external study
-
-## DATASET 2 (external dataset with a similar sample size)
-n2 <- 300          # total sample size of the 1st external dataset
-seed2 <- 1236      # seed value to generate the 1st external dataset
-prob2 <- 0.5       # probability to assign the new treatment
-baselineBMI2 <- 27 # mean baseline BMI in 1st external study
-
-## DATASET 3 (external dataset with a small sample size)
-n3 <- 50           # total sample size of the 1st external dataset
-seed3 <- 1237      # seed value to generate the 1st external dataset
-prob3 <- 0.5       # probability to assign the new treatment
-baselineBMI3 <- 30 # mean baseline BMI in 1st external study
-
-## DATASET 4 (external dataset with a large sample; similar baseline BMI)
-n4 <- 2000         # total sample size of the 1st external dataset
-seed4 <- 1238      # seed value to generate the 1st external dataset
-prob4 <- 0.5       # probability to assign the new treatment
-baselineBMI4 <- 35 # mean baseline BMI in 1st external study
 
 ## DATA GENERATION
 ## DATA GENERATION
