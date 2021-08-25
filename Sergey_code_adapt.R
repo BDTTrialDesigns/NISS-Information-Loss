@@ -35,11 +35,12 @@ dataGeneration <- function(n = n0,
                            baselineBMI = baselineBMI0,
                            baselineCovBMI = c(baselineCovBMI1, baselineCovBMI2),
                            additionalCovBMI=c(additionalCovBMI1, additionalCovBMI2),
+                           cov_par = c(1,1),
                            treatment_effect)
   {
   set.seed(seed) 
   R <- rbinom(n, size = 1, prob = prob)
-  covariate <- rnorm(n, mean = 1, sd = 1)
+  covariate <- rnorm(n, mean = cov_par[1], sd = cov_par[2])
   # MU <- data.frame(BMI1 = baselineBMI, 
   #                  BMI2 = baselineBMI + red1 + covariate*additionalCovBMI[1] + 
   #                    R*treatment_effect[1], 
