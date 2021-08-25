@@ -14,23 +14,18 @@ red1 <- -0.01     # %BMI reduction at the early point
 red2 <- 0.00      # %BMI reduction at the final endpoint
 lost1 <- 0.2   # probability of dropping prior to the early %BMI assessment
 lost2 <- 0.4   # probability of dropping prior to the final %BMI assessment
-baselineCovBMI1 <- -0.01 # the higher %BMI is the stronger %BMI reduction 
-                         #is anticipated (early endpoint) toward %BMI = 0.5
-baselineCovBMI2 <- -0.01 # the higher BMI is the stronger BMI reduction 
-                         # is anticipated (final endpoint) toward %BMI = 0.5
 additionalCovBMI1 = 0 # for now  0
 additionalCovBMI2 = 0 # for now  0
 
-## note the CORR is not a correlation matrix
-## SDs are not standard deviations
-## this is just a way to create a covariance matrix
-rho <- 0.75    # a parameter of a covariance matrix
-rho23 <- 0.95  # a parameter of a covariance matrix
+## CORR is a correlation matrix
+## SDs are standard deviations
+rho <- 0.75    # correlation between BMI1 and BMI3 (BMI1 and BMI2)
+rho23 <- 0.95  # correlation between BMI2 and BMI3
 CORR  <- diag(rep(3,1))
 CORR[CORR == 0] <- rho
 CORR[2,3] <- CORR[3,2] <- rho23
-SDs <- sqrt(c(0.02, 0.02, 0.02)) # the SDs are all 2% now
-SIGMA <- diag(SDs) %*% CORR %*% diag(SDs)
+sigmas <- c(0.02, 0.02, 0.02) # all SDs are 2% now
+SIGMA <- diag(sigmas) %*% CORR %*% diag(sigmas)
 
 ############ FUNCTIONS (start)  ##############
 ############ FUNCTIONS (start)  ##############
@@ -41,37 +36,35 @@ dataGeneration <- function(n = n0,
                            seed = seed0, 
                            prob = prob0, 
                            baselineBMI = baselineBMI0,
-                           baselineCovBMI = c(baselineCovBMI1, baselineCovBMI2),
                            additionalCovBMI=c(additionalCovBMI1, additionalCovBMI2),
-                           treatment_effect) {
+                           treatment_effect, mz = NA, m = NA) {
   R <- rbinom(n, size = 1, prob = prob)
   covariate <- rnorm(n, mean = 1, sd = 1) 
-  # note, it is better to pass the mean and SD of the covariate 
-  # through the arguments; I am thinking that the covariate is AGE (?)
-  # AGE is not assiciated with baseline, but maybe associated with 
-  # the follow-up assessments
   MU <- data.frame(BMI1 = baselineBMI, 
-                   BMI2 = baselineBMI + red1 + covariate*additionalCovBMI[1] + 
-                     R*treatment_effect[1], 
-                   BMI3 = baselineBMI + red2 + covariate*additionalCovBMI[2] + 
-                     R*treatment_effect[2])
+                   BMI2 = baselineBMI + red1 + 
+                     covariate * additionalCovBMI[1] + R * treatment_effect[1], 
+                   BMI3 = baselineBMI + red2 + 
+                     covariate * additionalCovBMI[2] + R * treatment_effect[2])
   BMI <- MASS::mvrnorm(n, mu = c(0,0,0), Sigma = SIGMA) + MU
-  # below we add the effect of baseline on follow-up 
-  # [the higher initial BMI the higher improvement we anticipate] 
-  BMI[,-1] <- BMI[,-1] + (BMI[,1] - 0.5) %o% baselineCovBMI
   BMI$R <- R
-  BMI[runif(n) < lost1, c("BMI2", "BMI3")] <- NA
-  BMI[runif(n) < lost2, c("BMI3")] <- NA
+  if(is.na(m) | is.na(mz)) {
+    BMI[runif(n) < lost1, c("BMI2", "BMI3")] <- NA
+    BMI[runif(n) < lost2, c("BMI3")] <- NA
+  }
+  if(!is.na(m) & !is.na(mz)) {
+    BMI[1:(n-mz), c("BMI2", "BMI3")] <- NA
+    BMI[1:(n-m),  c("BMI3")] <- NA
+  }
   return(BMI)
 }
 
 ## (2) plotting BMI data
-BMIplot <- function(BMI, main = "BMI data") {
+BMIplot <- function(BMI, main = "", ylab="Age and sex adjusted BMI percentile") {
   n <- nrow(BMI)
   boxplot(c(BMI$BMI1, BMI$BMI2, BMI$BMI3)~
             c(rep(0, n), rep(12, n), rep(24, n)),
-          xlab="Month", ylab="BMI", main = main)
-  for(i in 1:10) {
+          xlab="Month", main = main, range=0, ylab=ylab)
+  for(i in ceiling(runif(10)*n)) {
     tmp <- BMI[i, ]
     points(c(rep(1, 1), rep(2, 1), rep(3, 1)),
            c(tmp$BMI1, tmp$BMI2, tmp$BMI3), pch = 19)
@@ -81,20 +74,22 @@ BMIplot <- function(BMI, main = "BMI data") {
 }
 
 ############ FUNCTIONS (end) ##############
-############ FUNCTIONS (end)  ##############
-############ FUNCTIONS (end)  ##############
+############ FUNCTIONS (end)  #############
+############ FUNCTIONS (end)  #############
 
 
 ## DATASET 0 (main dataset)
-n0 <- 452           # total sample size of the main study
+n0 <- 452           # total sample size of the main study (pts with BMI1 observed)
 seed0 <- 1234       # seed value to generate the main dataset
 prob0 <- 0.5        # probability to assign the new treatment
 baselineBMI0 <- 0.9 # mean baseline %BMI in main study 
 eff10 <- -0.015   # %BMI reduction at the early time point (the intervention effect)
 eff20 <- -0.0075  # %BMI reduction at the final endpoint (the intervention effect)
+m <- 86 # number of patients with BMI1, BMI2 and BMI3 observed
+mz <- 344 # number of patients with BMI1, BMI2 observed
 
 ## DATASET 0.1 ('sister' trial)
-n0 <- 200           # total sample size of the main study
+n01 <- 200           # total sample size of the main study
 seed01 <- 1235       # seed value to generate the main dataset
 prob0 <- 0.5        # probability to assign the new treatment
 baselineBMI01 <- 0.9 # mean baseline BMI in main study 
@@ -151,15 +146,14 @@ BMI0 <- dataGeneration(n0,
                        seed = seed0, 
                        prob = prob0, 
                        baselineBMI = baselineBMI0,
-                       baselineCovBMI = c(baselineCovBMI1,baselineCovBMI2),
-                       additionalCovBMI=c(additionalCovBMI1, additionalCovBMI2),
-                       treatment_effect=c(eff10,eff20))
+                       additionalCovBMI = c(additionalCovBMI1, additionalCovBMI2),
+                       treatment_effect = c(eff10, eff20),
+                       mz = mz, m = m)
 
-BMI0.1 <- dataGeneration(n0, 
+BMI0.1 <- dataGeneration(n01, 
                        seed = seed01, 
                        prob = prob0, 
                        baselineBMI = baselineBMI0,
-                       baselineCovBMI = c(baselineCovBMI1,baselineCovBMI2),
                        additionalCovBMI=c(additionalCovBMI1, additionalCovBMI2),
                        treatment_effect=c(eff10,eff20))
 
@@ -167,7 +161,6 @@ BMI1 <- dataGeneration(n1,
                        seed=seed1, 
                        prob = prob1, 
                        baselineBMI = baselineBMI1,
-                       baselineCovBMI = c(baselineCovBMI1,baselineCovBMI2),
                        additionalCovBMI=c(additionalCovBMI1, additionalCovBMI2),
                        treatment_effect=c(eff11,eff21))
 
@@ -175,7 +168,6 @@ BMI2 <- dataGeneration(n2,
                        seed=seed2, 
                        prob = prob2, 
                        baselineBMI = baselineBMI2,
-                       baselineCovBMI = c(baselineCovBMI1,baselineCovBMI2),
                        additionalCovBMI=c(additionalCovBMI1, additionalCovBMI2),
                        treatment_effect=c(eff12,eff22))
 
@@ -183,7 +175,6 @@ BMI3 <- dataGeneration(n3,
                        seed=seed3, 
                        prob = prob3, 
                        baselineBMI = baselineBMI3,
-                       baselineCovBMI = c(baselineCovBMI1,baselineCovBMI2),
                        additionalCovBMI=c(additionalCovBMI1, additionalCovBMI2),
                        treatment_effect=c(eff13,eff23))
 
@@ -191,7 +182,6 @@ BMI4 <- dataGeneration(n4,
                        seed=seed4, 
                        prob = prob4, 
                        baselineBMI = baselineBMI4,
-                       baselineCovBMI = c(baselineCovBMI1,baselineCovBMI2),
                        additionalCovBMI=c(additionalCovBMI1, additionalCovBMI2),
                        treatment_effect=c(eff14,eff24))
 
@@ -199,14 +189,12 @@ BMI5 <- dataGeneration(n5,
                        seed=seed5, 
                        prob = prob5, 
                        baselineBMI = baselineBMI5,
-                       baselineCovBMI = c(baselineCovBMI1,baselineCovBMI2),
                        additionalCovBMI=c(additionalCovBMI1, additionalCovBMI2),
                        treatment_effect=c(eff15,eff25))
 
 ## (NOT RUN)
 ## plotting the generated BMI data
-# BMIplot(BMI0, main = "Main BMI data")
-# BMIplot(BMI1, main = "External large BMI data")
-# BMIplot(BMI2, main = "External moderate BMI data")
-# BMIplot(BMI3, main = "External small BMI data")
-# BMIplot(BMI4, main = "External large BMI data\nbaseline BMI is similar to the main data")
+# set.seed(123); BMIplot(BMI0, main = "Main BMI data")
+# set.seed(123); BMIplot(BMI1, main = "External large BMI data")
+# set.seed(123); BMIplot(BMI2, main = "External moderate BMI data")
+# set.seed(123); BMIplot(BMI3, main = "External small BMI data")
