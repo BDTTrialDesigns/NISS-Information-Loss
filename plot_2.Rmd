@@ -1,0 +1,311 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(ggplot2)
+library(cowplot)
+library(gridExtra)
+setwd("~/Nextcloud/NISSworkingGroup")
+theme_set(theme_classic())
+  
+
+load("tables_original.RData")
+ext <- Bayes.results.z
+ext_p <- Bayes.results.p
+```
+
+```{r}
+axis <- c(-0.4, 0.05)
+axis_p <- c(-0.05, 0.005)
+```
+
+### BMI Scale
+## Internal
+
+```{r}
+nc_1 <- -0.0914
+se_1 <- 0.02818
+nc_2 <- -0.0958
+se_2 <- 0.02848
+```
+
+```{r}
+int_z <- data.frame(method = c("Complete Cases", "Full Data", "DReg", "AIPW", 
+                               "Complete Cases", "Full Data", "DReg", "AIPW"),
+                    index = c(4:1,8:5),
+                    col = as.factor(c(2, 2, 1, 1, 2, 2, 1, 1)),
+                    effect = c(-0.0834, nc_1, -0.1024, -0.0916, -0.0817, nc_2, 
+                               -0.0988, -0.0917),
+                    lower = c(-0.1667, nc_1-(1.96*se_1), -0.1824, -0.1579, -0.1679,
+                              nc_2-(1.96*se_2), -0.1831, -0.1688),
+                    upper = c(0.0000, nc_1+(1.96*se_1), -0.0223, -0.0252, 0.0045,
+                              nc_2+(1.96*se_2), -0.0144, -0.0145))
+
+plot_int <- ggplot(int_z, aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=col)) + 
+  geom_point() + geom_errorbarh(height=0.1) + xlim(axis) +
+  scale_y_continuous(name="", breaks=int_z$index, labels=int_z$method) +
+   geom_segment(aes(x = -0.3, y = 1, xend = -0.3, yend = 4)) +
+  geom_segment(aes(x = -0.3, y = 5, xend = -0.3, yend = 8)) +
+  geom_segment(aes(x = -0.3, y = 1, xend = -0.28, yend = 1)) +
+  geom_segment(aes(x = -0.3, y = 4, xend = -0.28, yend = 4)) +
+    geom_segment(aes(x = -0.3, y = 5, xend = -0.28, yend = 5)) +
+  geom_segment(aes(x = -0.3, y = 8, xend = -0.28, yend = 8)) + 
+ annotate("text", label = "0.9", x = -0.35, y = 2.5)+ 
+ annotate("text", label = "0.6", x = -0.35, y = 6.5) +
+  labs(title="Internal Data", 
+       x="Treatment Effect (z-scale)", y="Method") +
+  geom_vline(xintercept=0, linetype="dashed", alpha=0.5) + 
+   scale_colour_viridis_d() + theme(axis.title.x=element_blank(), legend.position="none")
+```
+
+## External
+
+```{r}
+full_nc <- data.frame(method = c("External Data", "Complete Cases", "MVAR", "MMSE", 
+                                 "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext[3,1], -0.0833, -0.0780, -0.0780, -0.0807, -0.0788, -0.0804),
+                        lower = c(ext[3,3], -0.1672, -0.1236, -0.157, -0.1502, -0.1384, -0.1486),
+                        upper = c(ext[3,4], 0.0021, -0.0323, -0.0117, -0.0122, -0.0210, -0.0121),
+                      col = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot1 <- ggplot(full_nc, aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=col)) +
+          geom_point() + geom_errorbarh(height=0.1) + xlim(axis) +
+          scale_y_continuous(name="", breaks=full_nc$index, labels=full_nc$method) +
+          labs(title="External Data (Full NC)", y="Method") +
+          geom_vline(xintercept=0, linetype="dashed", alpha=0.5) + 
+          scale_colour_viridis_d() + theme(axis.title.x=element_blank(), legend.position="none")
+```
+
+```{r}
+double_nc <- data.frame(method = c("External Data","Complete Cases", "MVAR", "MMSE", 
+                                   "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext[4,1],-0.0833, -0.0897, -0.0897, -0.0868, -0.0874, -0.0867),
+                        lower = c(ext[4,3],-0.1672, -0.1245, -0.154, -0.1509, -0.1444, -0.1521),
+                        upper = c(ext[4,4],0.0021, -0.055, -0.0092, -0.0197, -0.0306, -0.0204),
+                        data = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot2 <- ggplot(double_nc, 
+          aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=data)) +
+          geom_point() + geom_errorbarh(height=0.1) + xlim(axis) +
+          scale_y_continuous(name="", breaks=double_nc$index, labels=double_nc$method) +
+          labs(title="External Data (Double NC)", y="Method") +
+          geom_vline(xintercept=0, linetype="dashed", alpha=0.5) +
+          scale_colour_viridis_d()  + theme(legend.position="none")
+```
+
+```{r}
+half_nc <- data.frame(method = c("External Data","Complete Cases", "MVAR", "MMSE", 
+                                 "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext[5,1], -0.0832, -0.0986, -0.0976, -0.092, -0.0959, -0.0917),
+                        lower = c(ext[5,3], -0.1672, -0.1525, -0.1569, -0.1612, -0.1578, -0.1593),
+                        upper = c(ext[5,4], 0.0021, -0.0447, -0.0074, -0.0194, -0.0342, -0.02),
+                      data = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot3 <- ggplot(half_nc, 
+                aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=data)) +
+                geom_point() + geom_errorbarh(height=0.1) + xlim(axis) +
+                scale_y_continuous(name="", breaks=half_nc$index, labels=half_nc$method) +
+                labs(title="External Data (Half NC)", y="Method") +
+                geom_vline(xintercept=0, linetype="dashed", alpha=0.5) +
+                scale_colour_viridis_d() + theme(axis.title.x=element_blank(), legend.position="none")
+```
+
+```{r}
+full_sc <- data.frame(method = c("External Data","Complete Cases", "MVAR", "MMSE", 
+                                 "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext[6,1], -0.0832, -0.2356, -0.0837, -0.1034, -0.0836, -0.1034),
+                        lower = c(ext[6,3], -0.1672, -0.28, -0.1642, -0.1904, -0.1696, -0.1887),
+                        upper = c(ext[6,4], 0.0021, -0.1911, -0.0039, -0.0181, 0.0012, -0.019),
+                                  data = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot4 <- ggplot(full_sc, 
+                aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=data)) +
+                geom_point() + geom_errorbarh(height=0.1) + xlim(axis) +
+                scale_y_continuous(name="", breaks=full_sc$index, labels=full_sc$method) +
+                labs(title="External Data (Full SC)", 
+                     x="Treatment Effect (z-scale)", y="Method") +
+                geom_vline(xintercept=0, linetype="dashed", alpha=0.5) +
+                scale_colour_viridis_d() + theme(legend.position="none")
+```
+
+```{r}
+full_mc <- data.frame(method = c("External Data", "Complete Cases", "MVAR", "MMSE", 
+                                 "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext[7,1], -0.0834, -0.1201, -0.0985, -0.1005, -0.0996, -0.1012),
+                        lower = c(ext[7,3], -0.1667, -0.1659, -0.1608, -0.1699, -0.1698, -0.17),
+                        upper = c(ext[7,4], 0.0000, -0.0743, -0.0059, -0.0227, -0.0287, -0.0228), 
+                      data = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot5 <- ggplot(full_mc, 
+                aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=data)) +
+                geom_point() + geom_errorbarh(height=0.1) + xlim(axis) +
+                scale_y_continuous(name="", breaks=full_mc$index, labels=full_mc$method) +
+                labs(title="External Data (Full MC)", 
+                     x="Treatment Effect (z-scale)", y="Method") +
+                geom_vline(xintercept=0, linetype="dashed", alpha=0.5) + 
+                scale_colour_viridis_d() + theme(axis.title.x=element_blank(), legend.position="none")
+```
+
+```{r}
+#plot_grid(plot1, plot3, plot5, plot2, plot4, plot_int, nrow= 3)
+
+a=ggpubr::ggarrange(plot_int,  plot1, plot3, plot5,  plot2, plot4, ncol = 2,nrow = 3, align="v")
+
+pdf(file = paste("~/Documents/NISSworkingGroup/all_plots.pdf", sep = ""), width=8,height=9, pointsize=11)
+grid.arrange(a,nrow = 1, ncol=1)
+graphics.off()
+```
+
+
+### p scale
+##Internal
+```{r}
+nc_1 <- -0.0105
+se_1 <- 0.00378
+nc_2 <- -0.0179
+se_2 <- 0.00422
+```
+
+```{r}
+int_p <- data.frame(method = c("Complete Cases", "Full Data", "DReg", "AIPW", 
+                               "Complete Cases", "Full Data", "DReg", "AIPW"),
+                    index = c(4:1,8:5),
+                    corr = as.factor(c(2, 2, 1, 1, 2, 2, 1, 1)),
+                    effect = c(-0.0110, nc_1, -0.0110, -0.0111, -0.0124, nc_2, 
+                               -0.0139, -0.0148),
+                    lower = c(-0.0228, nc_1-(1.96*se_1), -0.0203, -0.0202, -0.0255,
+                              nc_2-(1.96*se_2), -0.0258, -0.0263),
+                    upper = c(0.0009, nc_1+(1.96*se_1), -0.0016, -0.0019, 0.0006,
+                              nc_2+(1.96*se_2), -0.0020, -0.003))
+
+
+plot_int <- ggplot(int_p, aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=corr)) +
+  geom_point() + geom_errorbarh(height=0.1) + xlim(axis_p) +
+  scale_y_continuous(name="", breaks=int_p$index, labels=int_p$method) + 
+#  geom_brace(aes(c(-0.45,-0.04), c("Complete Cases", "AIPW"), label="my label"), rotate=270, mid=0.5, inherit.data=F, labelsize=5)
+ geom_segment(aes(x = -0.04, y = 1, xend = -0.04, yend = 4)) +
+  geom_segment(aes(x = -0.04, y = 5, xend = -0.04, yend = 8)) +
+  geom_segment(aes(x = -0.04, y = 1, xend = -0.038, yend = 1)) +
+  geom_segment(aes(x = -0.04, y = 4, xend = -0.038, yend = 4)) +
+    geom_segment(aes(x = -0.04, y = 5, xend = -0.038, yend = 5)) +
+  geom_segment(aes(x = -0.04, y = 8, xend = -0.038, yend = 8)) + 
+ annotate("text", label = "0.9", x = -0.045, y = 2.5)+ 
+ annotate("text", label = "0.6", x = -0.045, y = 6.5) +
+    labs(title="Internal Data", 
+       x="Treatment Effect (p-scale)", y="Method")  +
+  geom_vline(xintercept=0, linetype="dashed", alpha=0.5) + 
+  scale_colour_viridis_d() + theme(axis.title.x=element_blank(), legend.position="none")
+```
+
+##External
+```{r}
+full_nc <- data.frame(method = c("External Data","Complete Cases", "MVAR", "MMSE", 
+                                 "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext_p[3,1], -0.011, -0.0094, -0.0094, -0.0095, -0.0098, -0.0095),
+                        lower = c(ext_p[3,3], -0.023, -0.0162, -0.0172, -0.0173, -0.0187, -0.0173),
+                        upper = c(ext_p[3,4], 0.0011, -0.0026, -0.0027, -0.0018, -0.00009, -0.0019),
+                      col = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot1 <- ggplot(full_nc, 
+                aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=col)) +
+                geom_point() + geom_errorbarh(height=0.1) + xlim(axis_p) +
+                scale_y_continuous(name="", breaks=full_nc$index, labels=full_nc$method) +
+                labs(title="External Data (Full NC)", 
+                     x="Treatment Effect (p-scale)", y="Method") +
+                geom_vline(xintercept=0, linetype="dashed", alpha=0.5) + 
+          scale_colour_viridis_d() + theme(axis.title.x=element_blank(), legend.position="none")
+```
+
+```{r}
+double_nc <- data.frame(method = c("External Data","Complete Cases", "MVAR", "MMSE", 
+                                   "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext_p[4,1], -0.011, -0.0111, -0.0111, -0.0111, -0.011, -0.0111),
+                        lower = c(ext_p[4,3], -0.0228, -0.0164, -0.0168, -0.0177, -0.0195, -0.0178),
+                        upper = c(ext_p[4,4], 0.0009, -0.0058, -0.0055, -0.0046, -0.0026, -0.0044),
+                        col = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot2 <- ggplot(double_nc, 
+                aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=col)) +
+                geom_point() + geom_errorbarh(height=0.1) + xlim(axis_p) +
+                scale_y_continuous(name="", breaks=double_nc$index, labels=double_nc$method) +
+                labs(title="External Data (Double NC)", 
+                     x="Treatment Effect (p-scale)", y="Method") +
+                geom_vline(xintercept=0, linetype="dashed", alpha=0.5) +
+          scale_colour_viridis_d()  + theme(legend.position="none")
+```
+
+```{r}
+half_nc <- data.frame(method = c("External Data","Complete Cases", "MVAR", "MMSE", 
+                                 "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext_p[5,1], -0.011, -0.0133, -0.0133, -0.0134, -0.0129, -0.0134),
+                        lower = c(ext_p[5,3], -0.0228, -0.0209, -0.0209, -0.0215, -0.0219, -0.0215),
+                        upper = c(ext_p[5,4], 0.0009, -0.0058, -0.0045, -0.005, -0.0039, -0.0053),
+                      col = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot3 <- ggplot(half_nc, 
+                aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=col)) +
+                geom_point() + geom_errorbarh(height=0.1) + xlim(axis_p) +
+                scale_y_continuous(name="", breaks=half_nc$index, labels=half_nc$method) +
+                labs(title="External Data (Half NC)", 
+                     x="Treatment Effect (p-scale)", y="Method") +
+                geom_vline(xintercept=0, linetype="dashed", alpha=0.5) +
+          scale_colour_viridis_d() + theme(axis.title.x=element_blank(), legend.position="none")
+```
+
+```{r}
+full_sc <- data.frame(method = c("External Data", "Complete Cases", "MVAR", "MMSE", 
+                                 "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext_p[6,1], -0.011, -0.0277, -0.0136, -0.0234, -0.011, -0.0231),
+                        lower = c(ext_p[6,3], -0.0228, -0.0346, -0.0271, -0.034, -0.0228, -0.0333),
+                        upper = c(ext_p[6,4], 0.0009, -0.0208, -0.0013, -0.0113, 0.00008, -0.0112),
+                      col = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot4 <- ggplot(full_sc, 
+                aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=col)) +
+                geom_point() + geom_errorbarh(height=0.1) + xlim(axis_p) +
+                scale_y_continuous(name="", breaks=full_sc$index, labels=full_sc$method) +
+                labs(title="External Data (Full SC)", 
+                     x="Treatment Effect (p-scale)", y="Method") +
+                geom_vline(xintercept=0, linetype="dashed", alpha=0.5) +
+                scale_colour_viridis_d() + theme(legend.position="none")
+```
+
+```{r}
+full_mc <- data.frame(method = c("External Data", "Complete Cases", "MVAR", "MMSE", 
+                                 "Hierarchical", "Power", "MAC"),
+                        index = c(6,7,5:1),
+                        effect = c(ext_p[7,1], -0.011, -0.0141, -0.0141, -0.014, -0.0128, -0.014),
+                        lower = c(ext_p[7,3], -0.0228, -0.0207, -0.0207, -0.0213, -0.0222, -0.0213),
+                        upper = c(ext_p[7,4], 0.0009, -0.0075, -0.0056, -0.0064, -0.0035, -0.0063),
+                      col = as.factor(c(rep(2, 2), rep(1, 5))))
+
+plot5 <- ggplot(full_mc, 
+                aes(y=index, x=effect, xmin=lower, xmax=upper, linetype=col)) +
+                geom_point() + geom_errorbarh(height=0.1) + xlim(axis_p) +
+                scale_y_continuous(name="", breaks=full_mc$index, labels=full_mc$method) +
+                labs(title="External Data (Full MC)", 
+                     x="Treatment Effect (p-scale)", y="Method") +
+                geom_vline(xintercept=0, linetype="dashed", alpha=0.5) + 
+          scale_colour_viridis_d() + theme(axis.title.x=element_blank(), legend.position="none")
+```
+
+```{r}
+
+a=ggpubr::ggarrange(plot_int,  plot1, plot3, plot5,  plot2, plot4, ncol = 2,nrow = 3, align="v")
+
+pdf(file = paste("~/Documents/NISSworkingGroup/all_plots_p.pdf", sep = ""), width=8,height=9, pointsize=11)
+grid.arrange(a,nrow = 1, ncol=1)
+graphics.off()
+```
