@@ -161,15 +161,6 @@ names(BMI_data) = rownames(settings)
 
 Sim=list(Sim_Datasets=BMI_data)
 
-#check identical
-
-# load("~/Nextcloud/NISSworkingGroup/TrialData_revisedST5.RData")
-# Sim=Sim$Sim_Datasets[c(1,3:8)]
-# sapply(1:7, function(x) 
-#       {identical(Sim[[x]],BMI_data[[x]])
-#        aa=(Sim[[x]]-BMI_data[[x]])
-#        sum(abs(aa),na.rm=TRUE)})
-
 save(Sim,file='TrialData.RData')
 
 ############ PLOTS ##############
