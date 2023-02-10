@@ -11,11 +11,11 @@ load(paste0(out_dir,'/TrialData.RData'))
 
 #High correlation main dataset
 if (corr=='high')
-  Sim$Sim_Datasets= Sim$Sim_Datasets[c(1,3:7)] 
+  Sim$Sim_Datasets= Sim$Sim_Datasets[c(1:6)] 
 
 #Low correlation main dataset
 if (corr=='low')
-  Sim$Sim_Datasets= Sim$Sim_Datasets[c(8,3:7)]
+  Sim$Sim_Datasets= Sim$Sim_Datasets[c(7,2:6)]
 
 names(Sim$Sim_Datasets)=c('Main','Full(NC)','Double(NC)','Half(NC)','Full(SC)','Full(MC)')
 
@@ -52,7 +52,7 @@ for (i in 1:length(Sim$Sim_Datasets))
   conf.int[i,]=confint(lm.m,'R', level = 0.95)
   sigmaj[i]=lmfit$coefficients['R',2]^2
   
-  sigma_unit[i]=lmfit$coefficients['R',2]^2*sum(n_all[i,])
+  sigma_unit[i]=sqrt(lmfit$coefficients['R',2]^2*sum(n_all[i,]))
 }
 
 # frequentist confidence intervals for current and external
